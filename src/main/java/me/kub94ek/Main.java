@@ -1,5 +1,6 @@
 package me.kub94ek;
 
+import me.kub94ek.data.database.Database;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -9,11 +10,14 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 
 public class Main extends ListenerAdapter {
     private static JDA jda;
+    private static Database database;
     
     public static void main(String[] args) {
         if (args.length < 1) {
             throw new RuntimeException("Missing arguments");
         }
+        
+        database = new Database();
         
         new Main().startBot(args[0]);
         
