@@ -1,10 +1,16 @@
 package me.kub94ek.data.database;
 
+import me.kub94ek.card.Card;
+import me.kub94ek.card.CardType;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class Database {
     public final Connection databaseConnection;
@@ -31,6 +37,12 @@ public final class Database {
                     hp_bonus INT DEFAULT 0)
                     """);
             
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS coins (
+                    user_id TEXT PRIMARY KEY,
+                    coins INT DEFAULT 0)
+                    """);
+            
             // Store stats in JSON
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS stats (
@@ -53,6 +65,9 @@ public final class Database {
         
     }
     
+    public void addCard(Card card) throws SQLException {
+        addCard(card.getId(), card.getOwner(), card.getType().name(), card.getAtkBonus(), card.getHpBonus());
+    }
     public void addCard(String id, String owner, String type, int atkBonus, int hpBonus) throws SQLException {
         PreparedStatement statement = databaseConnection.prepareStatement(
                 "INSERT INTO cards VALUES (?, ?, ?, ?, ?)"
@@ -68,5 +83,77 @@ public final class Database {
         statement.close();
         
     }
+    public void removeCard(String id) throws SQLException {
+        PreparedStatement statement = databaseConnection.prepareStatement("DELETE FROM cards WHERE id='" + id + "'");
+        statement.execute();
+        statement.close();
+    }
+    public boolean cardExists(String id) {
+        Statement statement;
+        boolean exists;
+        try {
+            statement = databaseConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM cards WHERE id='" + id + "'");
+            exists = resultSet.next();
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return exists;
+    }
+    public Card getCard(String id) {
+        if (!cardExists(id)) {
+            throw new IllegalArgumentException("This card doesn't exist");
+        }
+        
+        Card card = null;
+        Statement statement;
+        try {
+            statement = databaseConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM cards WHERE id='" + id + "'");
+            while (resultSet.next()) {
+                card = new Card(id, resultSet.getString("owner"),
+                        CardType.valueOf(resultSet.getString("card_type")),
+                        resultSet.getInt("atk_bonus"), resultSet.getInt("hp_bonus"));
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return card;
+    }
+    public List<Card> getUserCards(String userId) {
+        List<Card> cards = new ArrayList<>();
+        Statement statement;
+        try {
+            statement = databaseConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM cards WHERE owner='" + userId + "'");
+            while (resultSet.next()) {
+                cards.add(new Card(resultSet.getString("id"), userId,
+                        CardType.valueOf(resultSet.getString("card_type")),
+                        resultSet.getInt("atk_bonus"), resultSet.getInt("hp_bonus")));
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return cards;
+    }
+    public void moveCard(String id, String newOwner) throws SQLException {
+        if (!cardExists(id)) return;
+        
+        Card card = getCard(id);
+        removeCard(id);
+        addCard(id, newOwner, card.getType().name(), card.getAtkBonus(), card.getHpBonus());
+        
+    }
+    
+    // TODO: Helper methods for coins table
     
 }

@@ -43,6 +43,23 @@ public final class Card {
         return health;
     }
     
+    
+    public String getId() {
+        return id;
+    }
+    public String getOwner() {
+        return owner;
+    }
+    public CardType getType() {
+        return type;
+    }
+    public int getAtkBonus() {
+        return atkBonus;
+    }
+    public int getHpBonus() {
+        return hpBonus;
+    }
+    
     /***
      * @return string for use in string selections
      * @see net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu
