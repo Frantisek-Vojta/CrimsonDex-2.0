@@ -2,6 +2,7 @@ package me.kub94ek.data.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -34,12 +35,37 @@ public final class Database {
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS stats (
                     user_id TEXT PRIMARY KEY,
-                    stats TEXT NOT NULL)
+                    stats TEXT DEFAULT '{}')
+                    """);
+            
+            // Store completed and current achievements as Lists and progress in JSON
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS achievements (
+                    user_id TEXT PRIMARY KEY,
+                    completed_achievements TEXT DEFAULT '[]',
+                    current_achievements TEXT DEFAULT '[]',
+                    achievement_progress TEXT DEFAULT '{}')
                     """);
             
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+        
+    }
+    
+    public void addCard(String id, String owner, String type, int atkBonus, int hpBonus) throws SQLException {
+        PreparedStatement statement = databaseConnection.prepareStatement(
+                "INSERT INTO cards VALUES (?, ?, ?, ?, ?)"
+        );
+        
+        statement.setString(1, id);
+        statement.setString(2, owner);
+        statement.setString(3, type);
+        statement.setInt(4, atkBonus);
+        statement.setInt(5, hpBonus);
+        
+        statement.execute();
+        statement.close();
         
     }
     
