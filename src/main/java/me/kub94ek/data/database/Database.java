@@ -154,6 +154,81 @@ public final class Database {
         
     }
     
-    // TODO: Helper methods for coins table
+    public boolean hasCoins(String userId) {
+        Statement statement;
+        boolean exists;
+        try {
+            statement = databaseConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM coins WHERE user_id='" + userId + "'");
+            exists = resultSet.next();
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return exists;
+    }
+    public void setCoins(String userId, int coins) {
+        if (!hasCoins(userId)) {
+            try (Statement statement = databaseConnection.createStatement()) {
+                statement.execute("INSERT INTO coins (user_id, coins) VALUES ('" + userId + "', " + coins + ")");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+        
+        try (Statement statement = databaseConnection.createStatement()) {
+            statement.execute("UPDATE coins SET coins=" + coins + " WHERE user_id='" + userId + "'");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public int getCoins(String userId) {
+        if (!hasCoins(userId)) {
+            return 0;
+        }
+        
+        int returnValue = 0;
+        Statement statement;
+        try {
+            statement = databaseConnection.createStatement();
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM coins WHERE user_id='" + userId + "'");
+            if (resultSet.next()) {
+                returnValue = resultSet.getInt("coins");
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return returnValue;
+        }
+        return returnValue;
+    }
+    public void addCoins(String userId, int coins) {
+        setCoins(userId, getCoins(userId) + coins);
+    }
+    public void removeCoins(String userId, int coins) {
+        setCoins(userId, getCoins(userId) - coins);
+    }
+    public void giveCoins(String fromUser, String toUser, int coins) {
+        if (!hasCoins(toUser)) {
+            try (Statement statement = databaseConnection.createStatement()) {
+                statement.execute("INSERT INTO coins (user_id, coins) VALUES ('" + toUser + "', " + coins + ")");
+                statement.execute("UPDATE coins SET coins=" + (getCoins(fromUser) - coins) + " WHERE user_id='" + fromUser + "'");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+        
+        try (Statement statement = databaseConnection.createStatement()) {
+            statement.execute("UPDATE coins SET coins=" + (getCoins(fromUser) - coins) + " WHERE user_id='" + fromUser + "'");
+            statement.execute("UPDATE coins SET coins=" + (getCoins(toUser) + coins) + " WHERE user_id='" + toUser + "'");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
     
 }
