@@ -36,3 +36,5 @@ build/
 
 ### CrimsonDex ###
 database.db
+src/main/resources/
+image.png
