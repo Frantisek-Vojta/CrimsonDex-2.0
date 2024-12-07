@@ -1,8 +1,16 @@
 package me.kub94ek.data.database;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import me.kub94ek.Main;
 import me.kub94ek.card.Card;
 import me.kub94ek.card.CardType;
+import me.kub94ek.data.stats.Stats;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
+import java.awt.Color;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -229,6 +237,120 @@ public final class Database {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+    
+    public JsonObject initStats(String userId) {
+        if (hasStats(userId)) {
+            throw new IllegalStateException("This user already has stats initialized (id: " + userId + ")");
+        }
+        
+        JsonObject jsonObject = new JsonObject();
+        
+        for (Stats stat : Stats.values()) {
+            jsonObject.add(stat.id, new JsonPrimitive(0));
+        }
+        
+        try (PreparedStatement statement = databaseConnection.prepareStatement(
+                "INSERT INTO cards VALUES (?, ?)"
+        )) {
+            statement.setString(1, userId);
+            statement.setString(2, jsonObject.toString());
+            
+            statement.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return jsonObject;
+        }
+        
+        return jsonObject;
+    }
+    public boolean hasStats(String userId) {
+        boolean exists;
+        try (Statement statement = databaseConnection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM stats WHERE user_id='" + userId + "'");
+            exists = resultSet.next();
+            resultSet.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return exists;
+    }
+    public JsonObject getStats(String userId) {
+        if (!hasStats(userId)) {
+            return initStats(userId);
+        }
+        
+        String statsJson = "{}";
+        try (Statement statement = databaseConnection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM stats WHERE id='" + userId + "'");
+            if (resultSet.next()) {
+                statsJson = resultSet.getString("stats");
+            }
+            resultSet.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        Gson gson = new Gson();
+        
+        return gson.fromJson(statsJson, JsonObject.class);
+    }
+    public int getStat(String userId, Stats stat) {
+        return getStat(userId, stat.id);
+    }
+    public int getStat(String userId, String stat) {
+        JsonObject json = getStats(userId);
+        
+        if (!json.has(stat)) {
+            return -1;
+        }
+        
+        return json.get(stat).getAsInt();
+    }
+    public void setStats(String userId, JsonObject json) {
+        setStats(userId, json.toString());
+    }
+    public void setStats(String userId, String json) {
+        if (!hasStats(userId)) {
+            initStats(userId);
+        }
+        
+        try (Statement statement = databaseConnection.createStatement()) {
+            statement.execute("UPDATE stats SET stats='" + json + "' WHERE user_id='" + userId + "'");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+    }
+    public void setStat(String userId, Stats stat, int value) {
+        setStat(userId, stat.id, value);
+    }
+    public void setStat(String userId, String stat, int value) {
+        JsonObject stats = getStats(userId);
+        stats.add(stat, new JsonPrimitive(value));
+        setStats(userId, stats);
+    }
+    public void increaseStat(String userId, Stats stat, int increment) {
+        setStat(userId, stat.id, getStat(userId, stat.id) + increment);
+    }
+    public void increaseStat(String userId, String stat, int increment) {
+        setStat(userId, stat, getStat(userId, stat) + increment);
+    }
+    public MessageEmbed createStatsEmbed(String userId) {
+        EmbedBuilder embedBuilder = new EmbedBuilder();
+        embedBuilder.setColor(Color.ORANGE);
+        embedBuilder.setAuthor("Statistics:",
+                "https://discord.com/invite/D4wjvR8Dw9",
+                Main.getJda().getUserById(userId).getEffectiveAvatarUrl());
+        
+        JsonObject json = getStats(userId);
+        
+        for (Stats stat : Stats.values()) {
+            embedBuilder.addField(stat.name, "" + json.get(stat.id).getAsInt(), false);
+        }
+        
+        return embedBuilder.build();
     }
     
 }

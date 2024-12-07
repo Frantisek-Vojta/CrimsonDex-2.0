@@ -3,6 +3,7 @@ package me.kub94ek;
 import me.kub94ek.card.Card;
 import me.kub94ek.card.CardType;
 import me.kub94ek.data.database.Database;
+import me.kub94ek.data.stats.Stats;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -38,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 public class Main extends ListenerAdapter {
     private static JDA jda;
     private static Database database;
-    private static List<String> availableChannels = new ArrayList<>();
+    private static final List<String> availableChannels = new ArrayList<>();
     
     private static final List<String> messageIds = new ArrayList<>();
     
@@ -171,6 +172,8 @@ public class Main extends ListenerAdapter {
     
     @Override
     public void onModalInteraction(ModalInteractionEvent event) {
+        String memberId = event.getMember().getId();
+        
         if (event.getModalId().equals("catch")) {
             String answer = event.getValue("answer").getAsString();
             if (!messageIds.contains(event.getMessage().getId())) {
@@ -188,7 +191,7 @@ public class Main extends ListenerAdapter {
                 Random random = new Random();
                 CardType type = cardTypes.get(event.getMessage().getId());
                 
-                Card card = new Card(Generator.createUniqueCardId(), event.getMember().getId(), type,
+                Card card = new Card(Generator.createUniqueCardId(), memberId, type,
                         random.nextInt(-20, 21),
                         random.nextInt(-20, 21));
                 
@@ -208,20 +211,18 @@ public class Main extends ListenerAdapter {
                 ).queue();
                 buttons.remove(event.getMessage().getId());
                 
-                
                 try {
                     database.addCard(card);
-                    /*if (!database.hasStats(event.getMember().getId())) {
-                        database.registerStats(event.getMember().getId());
+                    if (!database.hasStats(memberId)) {
+                        database.initStats(memberId);
                         database.setStat(
-                                event.getMember().getId(),
-                                "cards_caught",
-                                database.getUserCards(event.getMember().getId()).size()
+                                memberId,
+                                Stats.CARDS_CAUGHT,
+                                database.getUserCards(memberId).size()
                         );
                     } else {
-                        database.setStat(event.getMember().getId(), "cards_caught",
-                                database.getStat(event.getMember().getId(), "cards_caught") + 1);
-                    }*/
+                        database.increaseStat(memberId, Stats.CARDS_CAUGHT, 1);
+                    }
                     
                 } catch (SQLException e) {
                     e.printStackTrace();

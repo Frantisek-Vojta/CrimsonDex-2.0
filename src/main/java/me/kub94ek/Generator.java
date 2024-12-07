@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class Generator {
+public final class Generator {
     private static final String HEX = "0123456789ABCDEF";
     
     

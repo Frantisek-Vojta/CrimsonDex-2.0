@@ -12,7 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class CardCreator {
+public final class CardCreator {
     
     private static InputStream getFileInputStream(String fileName) {
         ClassLoader classLoader = CardCreator.class.getClassLoader();
