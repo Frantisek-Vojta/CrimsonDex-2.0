@@ -8,17 +8,25 @@ import me.kub94ek.image.CardCreator;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.requests.restaction.interactions.ReplyCallbackAction;
 import net.dv8tion.jda.api.utils.FileUpload;
 
 import java.awt.FontFormatException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-public class CardCommandExecutor implements CommandExecutor {
+public class CardCommandExecutor extends ListenerAdapter implements CommandExecutor {
+    
+    public static final HashMap<String, Integer> pages = new HashMap<>();
+    
     
     @Override
     public void executeCommand(SlashCommandInteractionEvent event) {
@@ -32,30 +40,13 @@ public class CardCommandExecutor implements CommandExecutor {
                         return;
                     }
                     
-                    StringSelectMenu.Builder builder = StringSelectMenu.create("card-list");
-                    var message = event.reply("Listing all your cards:");
-                    List<Card> cards = database.getUserCards(memberId);
-                    int idx = 0;
-                    if (cards.size() >= 25) {
-                        while (cards.size() > 25) {
-                            for (int i = 0; i < 25; i++) {
-                                builder.addOption(cards.getFirst().getListString(), cards.getFirst().getId(),
-                                        Emoji.fromCustom(cards.getFirst().getType().emoji));
-                                cards.removeFirst();
-                            }
-                            message.addActionRow(builder.build());
-                            idx++;
-                            builder = StringSelectMenu.create("card-list" + idx);
-                        }
-                    }
                     
-                    StringSelectMenu.Builder finalBuilder = builder;
-                    cards.forEach((card) -> {
-                        finalBuilder.addOption(card.getListString(), card.getId(),
-                                        Emoji.fromCustom(card.getType().emoji));
-                    });
-                    message.addActionRow(builder.build());
-                    message.setEphemeral(true).queue();
+                    var message = createListMessage(
+                            event.reply("Listing all your cards:"),
+                            database.getUserCards(memberId),
+                            0
+                    );
+                    message.setEphemeral(true).queue(sentMessage -> pages.put(memberId, 0));
                 }
                 case "give" -> {
                     User user = Objects.requireNonNull(event.getOption("user")).getAsUser();
@@ -63,6 +54,11 @@ public class CardCommandExecutor implements CommandExecutor {
                     
                     if (!database.cardExists(cardId)) {
                         event.reply("Unknown card").setEphemeral(true).queue();
+                        return;
+                    }
+                    
+                    if (user.isBot() || user.isSystem()) {
+                        event.reply("Invalid user").setEphemeral(true).queue();
                         return;
                     }
                     
@@ -102,8 +98,8 @@ public class CardCommandExecutor implements CommandExecutor {
                     
                     event.reply("You gave the card " + database.getCard(cardId).getListString() +
                             " to " + user.getAsMention()).setEphemeral(true).queue();
-                    event.getChannel().sendMessage(event.getMember().getAsMention() + " gave the card "
-                            + database.getCard(cardId).getListString() + " to " + user.getAsMention()).queue();
+                    event.getChannel().sendMessage(event.getMember().getAsMention() + " gave the card `"
+                            + database.getCard(cardId).getListString() + "` to " + user.getAsMention()).queue();
                     
                 }
                 case "last" -> {
@@ -138,6 +134,35 @@ public class CardCommandExecutor implements CommandExecutor {
                     
                 }
             }
+    }
+    
+    public static ReplyCallbackAction createListMessage(ReplyCallbackAction message, List<Card> cards, int page) {
+        
+        StringSelectMenu.Builder builder = StringSelectMenu.create("card-list");
+        
+        for (int i = page*25; i < (Math.min(cards.size(), 25*(page+1))); i++) {
+            builder.addOption(
+                    cards.get(i).getListString(),
+                    cards.get(i).getId(),
+                    Emoji.fromCustom(cards.get(i).getType().emoji)
+            );
+        }
+        
+        message.addActionRow(builder.build());
+        
+        List<Button> buttons = new ArrayList<>();
+        if (page > 0) {
+            buttons.add(Button.secondary("previous-page", "⮜"));
+        }
+        if (25*(page+1) < cards.size()) {
+            buttons.add(Button.secondary("next-page", "⮞"));
+        }
+        
+        if (!buttons.isEmpty()) {
+            message.addActionRow(buttons);
+        }
+        
+        return message;
     }
     
 }

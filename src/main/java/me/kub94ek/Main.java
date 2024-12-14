@@ -4,14 +4,17 @@ import me.kub94ek.card.Card;
 import me.kub94ek.card.CardType;
 import me.kub94ek.command.CommandManager;
 import me.kub94ek.command.impl.commands.CardCommand;
+import me.kub94ek.command.impl.executors.CardCommandExecutor;
 import me.kub94ek.data.database.Database;
 import me.kub94ek.data.stats.Stats;
+import me.kub94ek.image.CardCreator;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -21,8 +24,11 @@ import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.FileUpload;
+import org.jetbrains.annotations.NotNull;
 
+import java.awt.FontFormatException;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -32,6 +38,8 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static me.kub94ek.command.impl.executors.CardCommandExecutor.pages;
 
 public class Main extends ListenerAdapter {
     private static JDA jda;
@@ -147,6 +155,37 @@ public class Main extends ListenerAdapter {
                 });
     }
     
+    @Override
+    public void onStringSelectInteraction(@NotNull StringSelectInteractionEvent event) {
+        if (event.getComponentId().startsWith("card-list")) {
+            final CardType[] cardType = {null};
+            final int[] stats = {0, 0};
+            
+            StringBuilder messageBuilder = new StringBuilder();
+            database.getUserCards(event.getMember().getId()).forEach((card) -> {
+                if (card.getId().equals(event.getInteraction().getSelectedOptions().getFirst().getValue())) {
+                    messageBuilder.append(card);
+                    cardType[0] = card.getType();
+                    stats[0] = card.getAtkBonus();
+                    stats[1] = card.getHpBonus();
+                }
+            });
+            
+            try {
+                CardCreator.createCardImage(new Card("id", "owner", cardType[0], stats[0], stats[1]));
+            } catch (IOException | FontFormatException e) {
+                e.printStackTrace();
+            }
+            
+            event.reply(messageBuilder.toString())
+                    .addFiles(FileUpload.fromData(
+                        new File("image.jpg")
+                        ))
+                    .setEphemeral(true)
+                    .queue();
+            
+        }
+    }
     
     @Override
     public void onButtonInteraction(ButtonInteractionEvent e) {
@@ -169,6 +208,26 @@ public class Main extends ListenerAdapter {
                     .build();
             
             e.replyModal(modal).queue();
+        } else if (e.getComponentId().equals("previous-page")) {
+            if (pages.containsKey(e.getMember().getId())) {
+                int page = pages.get(e.getMember().getId()) - 1;
+                e.getMessage().delete().queue();
+                var message = CardCommandExecutor.createListMessage(
+                        e.reply("Listing all your cards:"),
+                        database.getUserCards(e.getMember().getId()),
+                        page);
+                message.setEphemeral(true).queue(sentMessage -> pages.put(sentMessage.getId(), page));
+            }
+        } else if (e.getComponentId().equals("next-page")) {
+            if (pages.containsKey(e.getMember().getId())) {
+                int page = pages.get(e.getMember().getId()) + 1;
+                e.getMessage().delete().queue();
+                var message = CardCommandExecutor.createListMessage(
+                        e.reply("Listing all your cards:"),
+                        database.getUserCards(e.getMember().getId()),
+                        page);
+                message.setEphemeral(true).queue(sentMessage -> pages.put(e.getMember().getId(), page));
+            }
         }
     }
     
@@ -237,6 +296,14 @@ public class Main extends ListenerAdapter {
     }
     
     private void registerGuildCommands() {
+        jda.getGuilds().forEach(guild -> guild.retrieveCommands().queue(commands -> {
+            commands.forEach(command -> {
+                if (command.getApplicationId().equals("1274368616179175485")) {
+                    command.delete().queue();
+                }
+            });
+        }));
+        
         commandManager.registerCommand(new CardCommand());
     }
     
