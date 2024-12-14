@@ -19,13 +19,14 @@ public class CommandManager extends ListenerAdapter {
         this.jda = jda;
     }
     
-    public void registerCommand(Command command) {
-        registerCommand(command.getCommand(), command.getExecutor());
-    }
-    
-    public void registerCommand(SlashCommandData command, CommandExecutor commandExecutor) {
-        jda.getGuilds().forEach(guild -> jda.updateCommands().addCommands(command).queue());
-        commandExecutors.put(command.getName(), commandExecutor);
+    public void registerCommands(List<Command> commands) {
+        List<SlashCommandData> slashCommandData = new ArrayList<>();
+        commands.forEach(command -> {
+            slashCommandData.add(command.getCommand());
+            commandExecutors.put(command.getCommand().getName(), command.getExecutor());
+        });
+        
+        jda.getGuilds().forEach(guild -> jda.updateCommands().addCommands(slashCommandData).queue());
     }
     
     @Override

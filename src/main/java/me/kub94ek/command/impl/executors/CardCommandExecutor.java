@@ -34,106 +34,106 @@ public class CardCommandExecutor extends ListenerAdapter implements CommandExecu
         Database database = Main.getDatabase();
         
         switch (Objects.requireNonNull(event.getSubcommandName())) {
-                case "list" -> {
-                    if (database.getUserCards(memberId).isEmpty()) {
-                        event.reply("You don't have any card yet.").setEphemeral(true).queue();
-                        return;
-                    }
-                    
-                    
-                    var message = createListMessage(
-                            event.reply("Listing all your cards:"),
-                            database.getUserCards(memberId),
-                            0
-                    );
-                    message.setEphemeral(true).queue(sentMessage -> pages.put(memberId, 0));
+            case "list" -> {
+                if (database.getUserCards(memberId).isEmpty()) {
+                    event.reply("You don't have any card yet.").setEphemeral(true).queue();
+                    return;
                 }
-                case "give" -> {
-                    User user = Objects.requireNonNull(event.getOption("user")).getAsUser();
-                    String cardId = Objects.requireNonNull(event.getOption("id")).getAsString();
-                    
-                    if (!database.cardExists(cardId)) {
-                        event.reply("Unknown card").setEphemeral(true).queue();
-                        return;
-                    }
-                    
-                    if (user.isBot() || user.isSystem()) {
-                        event.reply("Invalid user").setEphemeral(true).queue();
-                        return;
-                    }
-                    
-                    /*if ((battleData.containsKey(memberId) && battleData.get(memberId).containsCard(cardId))
-                            || (battles.containsKey(memberId)
-                            && startedBattleData.get(battles.get(memberId)).cardHealth.containsKey(cardId))) {
-                        event.reply("This card is currently not available").setEphemeral(true).queue();
-                        return;
-                    }*/
-                    
-                    boolean[] owns = {false};
-                    
-                    database.getUserCards(memberId).forEach(card -> {
-                        if (card.getId().equals(cardId)) {
-                            owns[0] = true;
-                        }
-                    });
-                    
-                    if (!owns[0]) {
-                        event.reply("You don't own this card").setEphemeral(true).queue();
-                        return;
-                    }
-                    
-                    try {
-                        database.moveCard(cardId, user.getId());
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                        event.reply("""
-                                Unexpected database error occurred.\
-                                
-                                Contact <@1064940406560788540> if this continues happening. \
-                                Don't forget to provide the error ID.\
-                                
-                                Error ID: jurhOd4zf9gUaAUP5X\s"""
-                        ).setEphemeral(true).queue();
-                    }
-                    
-                    event.reply("You gave the card " + database.getCard(cardId).getListString() +
-                            " to " + user.getAsMention()).setEphemeral(true).queue();
-                    event.getChannel().sendMessage(event.getMember().getAsMention() + " gave the card `"
-                            + database.getCard(cardId).getListString() + "` to " + user.getAsMention()).queue();
-                    
-                }
-                case "last" -> {
-                    if (database.getUserCards(memberId).isEmpty()) {
-                        event.reply("You don't have any card yet.").setEphemeral(true).queue();
-                        return;
-                    }
-                    
-                    Card card = database.getUserCards(memberId).getLast();
-                    event.deferReply(true).queue();
-                    
-                    try {
-                        CardCreator.createCardImage(new Card("id", "owner", card.getType(),
-                                card.getAtkBonus(), card.getHpBonus()));
-                    } catch (IOException | FontFormatException e) {
-                        e.printStackTrace();
-                        event.reply("""
-                                Unexpected database error occurred.\
-                                
-                                Contact <@1064940406560788540> if this continues happening. \
-                                Don't forget to provide the error ID.\
-                                
-                                Error ID: papsq6Z8VTFCZKjmst\s"""
-                        ).setEphemeral(true).queue();
-                    }
-                    
-                    event.getHook().sendMessage(card.toString())
-                            .addFiles(FileUpload.fromData(
-                                new File("image.jpg")
-                            ))
-                            .queue();
-                    
-                }
+                
+                
+                var message = createListMessage(
+                        event.reply("Listing all your cards:"),
+                        database.getUserCards(memberId),
+                        0
+                );
+                message.setEphemeral(true).queue(sentMessage -> pages.put(memberId, 0));
             }
+            case "give" -> {
+                User user = Objects.requireNonNull(event.getOption("user")).getAsUser();
+                String cardId = Objects.requireNonNull(event.getOption("id")).getAsString();
+                
+                if (!database.cardExists(cardId)) {
+                    event.reply("Unknown card").setEphemeral(true).queue();
+                    return;
+                }
+                
+                if (user.isBot() || user.isSystem()) {
+                    event.reply("Invalid user").setEphemeral(true).queue();
+                    return;
+                }
+                
+                /*if ((battleData.containsKey(memberId) && battleData.get(memberId).containsCard(cardId))
+                        || (battles.containsKey(memberId)
+                        && startedBattleData.get(battles.get(memberId)).cardHealth.containsKey(cardId))) {
+                    event.reply("This card is currently not available").setEphemeral(true).queue();
+                    return;
+                }*/
+                
+                boolean[] owns = {false};
+                
+                database.getUserCards(memberId).forEach(card -> {
+                    if (card.getId().equals(cardId)) {
+                        owns[0] = true;
+                    }
+                });
+                
+                if (!owns[0]) {
+                    event.reply("You don't own this card").setEphemeral(true).queue();
+                    return;
+                }
+                
+                try {
+                    database.moveCard(cardId, user.getId());
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    event.reply("""
+                            Unexpected database error occurred.\
+                            
+                            Contact <@1064940406560788540> if this continues happening. \
+                            Don't forget to provide the error ID.\
+                            
+                            Error ID: jurhOd4zf9gUaAUP5X\s"""
+                    ).setEphemeral(true).queue();
+                }
+                
+                event.reply("You gave the card " + database.getCard(cardId).getListString() +
+                        " to " + user.getAsMention()).setEphemeral(true).queue();
+                event.getChannel().sendMessage(event.getMember().getAsMention() + " gave the card `"
+                        + database.getCard(cardId).getListString() + "` to " + user.getAsMention()).queue();
+                
+            }
+            case "last" -> {
+                if (database.getUserCards(memberId).isEmpty()) {
+                    event.reply("You don't have any card yet.").setEphemeral(true).queue();
+                    return;
+                }
+                
+                Card card = database.getUserCards(memberId).getLast();
+                event.deferReply(true).queue();
+                
+                try {
+                    CardCreator.createCardImage(new Card("id", "owner", card.getType(),
+                            card.getAtkBonus(), card.getHpBonus()));
+                } catch (IOException | FontFormatException e) {
+                    e.printStackTrace();
+                    event.reply("""
+                            Unexpected database error occurred.\
+                            
+                            Contact <@1064940406560788540> if this continues happening. \
+                            Don't forget to provide the error ID.\
+                            
+                            Error ID: papsq6Z8VTFCZKjmst\s"""
+                    ).setEphemeral(true).queue();
+                }
+                
+                event.getHook().sendMessage(card.toString())
+                        .addFiles(FileUpload.fromData(
+                            new File("image.jpg")
+                        ))
+                        .queue();
+                
+            }
+        }
     }
     
     public static ReplyCallbackAction createListMessage(ReplyCallbackAction message, List<Card> cards, int page) {

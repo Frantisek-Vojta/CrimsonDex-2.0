@@ -4,6 +4,7 @@ import me.kub94ek.card.Card;
 import me.kub94ek.card.CardType;
 import me.kub94ek.command.CommandManager;
 import me.kub94ek.command.impl.commands.CardCommand;
+import me.kub94ek.command.impl.commands.CoinCommand;
 import me.kub94ek.command.impl.executors.CardCommandExecutor;
 import me.kub94ek.data.database.Database;
 import me.kub94ek.data.stats.Stats;
@@ -296,15 +297,13 @@ public class Main extends ListenerAdapter {
     }
     
     private void registerGuildCommands() {
-        jda.getGuilds().forEach(guild -> guild.retrieveCommands().queue(commands -> {
-            commands.forEach(command -> {
-                if (command.getApplicationId().equals("1274368616179175485")) {
-                    command.delete().queue();
-                }
-            });
-        }));
+        jda.getGuilds().forEach(guild -> guild.retrieveCommands().queue(commands -> commands.forEach(command -> {
+            if (command.getApplicationId().equals("1274368616179175485")) {
+                command.delete().queue();
+            }
+        })));
         
-        commandManager.registerCommand(new CardCommand());
+        commandManager.registerCommands(List.of(new CardCommand(), new CoinCommand()));
     }
     
     public static JDA getJda() {
