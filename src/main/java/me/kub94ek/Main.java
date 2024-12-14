@@ -2,21 +2,18 @@ package me.kub94ek;
 
 import me.kub94ek.card.Card;
 import me.kub94ek.card.CardType;
+import me.kub94ek.command.CommandManager;
+import me.kub94ek.command.impl.commands.CardCommand;
 import me.kub94ek.data.database.Database;
 import me.kub94ek.data.stats.Stats;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
@@ -39,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 public class Main extends ListenerAdapter {
     private static JDA jda;
     private static Database database;
+    private static CommandManager commandManager;
     private static final List<String> availableChannels = new ArrayList<>();
     
     private static final List<String> messageIds = new ArrayList<>();
@@ -48,7 +46,7 @@ public class Main extends ListenerAdapter {
     private static final HashMap<String, List<String>> rightAnswers = new HashMap<>();
     
     private static final List<String> whitelistedChannels = List.of("1274350116379164793");
-    private static final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
+    private static final ScheduledExecutorService service = Executors.newScheduledThreadPool(0);
     
     public static void main(String[] args) {
         if (args.length < 1) {
@@ -76,7 +74,11 @@ public class Main extends ListenerAdapter {
         }
         
         jda.addEventListener(this);
-        jda.getGuilds().forEach(Main::registerGuildCommands);
+        
+        commandManager = new CommandManager(jda);
+        jda.addEventListener(commandManager);
+        
+        registerGuildCommands();
         
         
         availableChannels.addAll(whitelistedChannels);
@@ -234,55 +236,8 @@ public class Main extends ListenerAdapter {
         }
     }
     
-    
-    private static void registerGuildCommands(Guild server) {
-        server.updateCommands().addCommands(
-                Commands.slash("card", "Command for controlling cards")
-                        .addSubcommands(
-                                new SubcommandData("list", "List your cards"),
-                                new SubcommandData("give", "Give your card to somebody")
-                                        .addOption(OptionType.USER, "user", "The user to give the card to", true)
-                                        .addOption(OptionType.STRING, "id", "ID of the card to give (without the #)", true),
-                                new SubcommandData("last", "Shows you the last caught card")
-                        ),
-                Commands.slash("battle", "Command for controlling battles")
-                        .addSubcommands(
-                                new SubcommandData("request", "Send battle request")
-                                        .addOption(OptionType.USER, "user", "The user to send the request to", true),
-                                new SubcommandData("accept", "Accept battle request")
-                                        .addOption(OptionType.USER, "user", "The request sender", true),
-                                new SubcommandData("deny", "Deny battle request")
-                                        .addOption(OptionType.USER, "user", "The request sender", true),
-                                new SubcommandData("add", "Add card to battle")
-                                        .addOption(OptionType.STRING, "id", "ID of the card to add (without the #)", true),
-                                new SubcommandData("remove", "Remove card from battle")
-                                        .addOption(OptionType.STRING, "id", "ID of the card to remove (without the #)", true),
-                                new SubcommandData("list", "List all cards in the battle"),
-                                new SubcommandData("stats", "Show your stats"),
-                                new SubcommandData("start", "Starts the battle")
-                        ),
-                Commands.slash("shop", "Command for controlling shop")
-                        .addSubcommands(
-                                new SubcommandData("open", "Shows shop menu"),
-                                new SubcommandData("buy", "Allows you to buy cards from shop")
-                                        .addOption(OptionType.STRING, "id", "ID of the card to buy", true)
-                                        .addOption(OptionType.BOOLEAN, "gamble",
-                                                "Whether or not to add random stat bonus to bought card"
-                                        )
-                        ),
-                Commands.slash("coin", "Command for controlling coins")
-                        .addSubcommands(
-                                new SubcommandData("bal", "Shows you your coin balance"),
-                                new SubcommandData("give", "Gives coins to somebody")
-                                        .addOption(OptionType.USER, "user", "The user to give the coins to")
-                                        .addOption(OptionType.INTEGER, "coins", "How many coins to give")
-                        )
-        ).queue();
-    }
-    
-    @Override
-    public void onGuildJoin(GuildJoinEvent e) {
-        registerGuildCommands(e.getGuild());
+    private void registerGuildCommands() {
+        commandManager.registerCommand(new CardCommand());
     }
     
     public static JDA getJda() {

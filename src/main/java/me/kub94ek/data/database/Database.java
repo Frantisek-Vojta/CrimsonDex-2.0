@@ -251,7 +251,7 @@ public final class Database {
         }
         
         try (PreparedStatement statement = databaseConnection.prepareStatement(
-                "INSERT INTO cards VALUES (?, ?)"
+                "INSERT INTO stats VALUES (?, ?)"
         )) {
             statement.setString(1, userId);
             statement.setString(2, jsonObject.toString());
@@ -283,7 +283,7 @@ public final class Database {
         
         String statsJson = "{}";
         try (Statement statement = databaseConnection.createStatement()) {
-            ResultSet resultSet = statement.executeQuery("SELECT * FROM stats WHERE id='" + userId + "'");
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM stats WHERE user_id='" + userId + "'");
             if (resultSet.next()) {
                 statsJson = resultSet.getString("stats");
             }
