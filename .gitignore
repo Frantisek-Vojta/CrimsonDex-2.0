@@ -38,3 +38,5 @@ build/
 database.db
 src/main/resources/
 image.png
+/battles/
+/image.jpg

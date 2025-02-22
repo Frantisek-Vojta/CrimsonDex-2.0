@@ -1,5 +1,7 @@
 package me.kub94ek.card.ability;
 
+import me.kub94ek.data.battle.StartedBattle;
+
 public final class EmptyAbility implements Ability {
     @Override
     public AbilityType getType() {
@@ -7,12 +9,12 @@ public final class EmptyAbility implements Ability {
     }
     
     @Override
-    public boolean canBeUsed() {
+    public boolean canBeUsed(StartedBattle battle) {
         return false;
     }
     
     @Override
-    public int cost() {
+    public int cost(StartedBattle battle) {
         return 0;
     }
     

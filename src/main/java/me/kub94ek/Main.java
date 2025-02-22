@@ -40,8 +40,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static me.kub94ek.command.impl.executors.CardCommandExecutor.pages;
-
 public class Main extends ListenerAdapter {
     private static JDA jda;
     private static Database database;
@@ -53,6 +51,8 @@ public class Main extends ListenerAdapter {
     private static final HashMap<String, Button> buttons = new HashMap<>();
     private static final HashMap<String, CardType> cardTypes = new HashMap<>();
     private static final HashMap<String, List<String>> rightAnswers = new HashMap<>();
+    
+    private static final HashMap<String, String> startedBattleIds = new HashMap<>();
     
     private static final List<String> whitelistedChannels = List.of("1274350116379164793");
     private static final ScheduledExecutorService service = Executors.newScheduledThreadPool(0);
@@ -210,24 +210,24 @@ public class Main extends ListenerAdapter {
             
             e.replyModal(modal).queue();
         } else if (e.getComponentId().equals("previous-page")) {
-            if (pages.containsKey(e.getMember().getId())) {
-                int page = pages.get(e.getMember().getId()) - 1;
+            if (CardCommandExecutor.pages.containsKey(e.getMember().getId())) {
+                int page = CardCommandExecutor.pages.get(e.getMember().getId()) - 1;
                 e.getMessage().delete().queue();
                 var message = CardCommandExecutor.createListMessage(
                         e.reply("Listing all your cards:"),
                         database.getUserCards(e.getMember().getId()),
                         page);
-                message.setEphemeral(true).queue(sentMessage -> pages.put(sentMessage.getId(), page));
+                message.setEphemeral(true).queue(sentMessage -> CardCommandExecutor.pages.put(sentMessage.getId(), page));
             }
         } else if (e.getComponentId().equals("next-page")) {
-            if (pages.containsKey(e.getMember().getId())) {
-                int page = pages.get(e.getMember().getId()) + 1;
+            if (CardCommandExecutor.pages.containsKey(e.getMember().getId())) {
+                int page = CardCommandExecutor.pages.get(e.getMember().getId()) + 1;
                 e.getMessage().delete().queue();
                 var message = CardCommandExecutor.createListMessage(
                         e.reply("Listing all your cards:"),
                         database.getUserCards(e.getMember().getId()),
                         page);
-                message.setEphemeral(true).queue(sentMessage -> pages.put(e.getMember().getId(), page));
+                message.setEphemeral(true).queue(sentMessage -> CardCommandExecutor.pages.put(e.getMember().getId(), page));
             }
         }
     }
@@ -311,6 +311,10 @@ public class Main extends ListenerAdapter {
     }
     public static Database getDatabase() {
         return database;
+    }
+    
+    public static HashMap<String, String> getStartedBattleIds() {
+        return startedBattleIds;
     }
     
 }

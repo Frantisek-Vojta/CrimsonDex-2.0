@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public final class Database {
@@ -58,7 +59,21 @@ public final class Database {
                     stats TEXT DEFAULT '{}')
                     """);
             
-            // Store completed and current achievements as Lists and progress in JSON
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS battle_requests (
+                    sender TEXT PRIMARY KEY,
+                    opponent TEXT NOT NULL)
+                    """);
+            
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS battles (
+                    sender TEXT PRIMARY KEY,
+                    opponent TEXT NOT NULL,
+                    sender_cards TEXT DEFAULT '[]',
+                    opponent_cards TEXT DEFAULT '[]')
+                    """);
+            
+            // Store completed and current achievements as arrays and progress in JSON
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS achievements (
                     user_id TEXT PRIMARY KEY,
@@ -352,5 +367,98 @@ public final class Database {
         
         return embedBuilder.build();
     }
+    
+    public HashMap<String, String> getBattleRequests() {
+        HashMap<String, String> hashMap = new HashMap<>();
+        
+        try (Statement statement = databaseConnection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM battle_requests WHERE");
+            while (resultSet.next()) {
+                hashMap.put(
+                        resultSet.getString("sender"),
+                        resultSet.getString("opponent")
+                );
+            }
+            resultSet.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return hashMap;
+    }
+    public HashMap<String, String> getAcceptedBattles() {
+        HashMap<String, String> hashMap = new HashMap<>();
+        
+        try (Statement statement = databaseConnection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM battles WHERE");
+            while (resultSet.next()) {
+                hashMap.put(
+                        resultSet.getString("sender"),
+                        resultSet.getString("opponent")
+                );
+            }
+            resultSet.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return hashMap;
+    }
+    public void requestBattle(String sender, String opponent) throws SQLException {
+        PreparedStatement statement = databaseConnection.prepareStatement(
+                "INSERT INTO battle_requests VALUES (?, ?)"
+        );
+        
+        statement.setString(1, sender);
+        statement.setString(2, opponent);
+        
+        statement.execute();
+        statement.close();
+    }
+    public void acceptBattleRequest(String sender, String opponent) throws SQLException {
+        PreparedStatement statement = databaseConnection.prepareStatement(
+                "INSERT INTO battles VALUES (?, ?, ?, ?)"
+        );
+        
+        statement.setString(1, sender);
+        statement.setString(2, opponent);
+        statement.setString(3, "[]");
+        statement.setString(4, "[]");
+        
+        statement.execute();
+        statement.close();
+        
+        removeBattleRequest(sender);
+    }
+    public void acceptBattleRequest(String sender, String opponent,
+                                    String[] senderCards, String[] opponentCards) throws SQLException {
+        PreparedStatement statement = databaseConnection.prepareStatement(
+                "INSERT INTO battles VALUES (?, ?, ?, ?)"
+        );
+        
+        Gson gson = new Gson();
+        
+        statement.setString(1, sender);
+        statement.setString(2, opponent);
+        statement.setString(3, gson.toJson(senderCards));
+        statement.setString(4, gson.toJson(opponentCards));
+        
+        statement.execute();
+        statement.close();
+        
+        removeBattleRequest(sender);
+    }
+    public void removeBattleRequest(String sender) throws SQLException {
+        try (Statement statement = databaseConnection.createStatement()) {
+            statement.execute("DELETE FROM battle_requests WHERE sender='" + sender + "'");
+        }
+    }
+    public void removeBattle(String sender) throws SQLException {
+        try (Statement statement = databaseConnection.createStatement()) {
+            statement.execute("DELETE FROM battles WHERE sender='" + sender + "'");
+        }
+    }
+    
+    
     
 }

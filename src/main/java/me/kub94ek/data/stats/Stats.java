@@ -7,7 +7,7 @@ public enum Stats {
     CARDS_CAUGHT("Cards Caught", "c_catch"),
     CARDS_BOUGHT("Cards Bought", "c_buy"),
     CARDS_TRADED("Cards Traded", "c_trade"),
-    KILLS("Kills", "kill"),
+    KILLS("Cards Killed", "kill"),
     CARDS_LOST("Cards Lost", "death"),
     COINS("Coins Total", "coins");
     
