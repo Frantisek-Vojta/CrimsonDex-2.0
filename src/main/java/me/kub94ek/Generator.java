@@ -7,6 +7,8 @@ import java.util.Random;
 public final class Generator {
     private static final String HEX = "0123456789ABCDEF";
     
+
+    //pls accept this request and i will have new achievmtn pls
     
     /*public static String createUniqueBattleId() {
         String id = generateId();
